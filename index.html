@@ -174,14 +174,7 @@ footer{text-align:center;padding:1.5rem;font-size:10px;color:var(--muted);border
 
 <!-- ANALYZE -->
 <div class="pg on" id="pg-analyze">
-  <div class="panel">
-    <div class="ph"><span class="pb2">CONFIG</span><span class="pt">Подключение к OpenAI</span></div>
-    <div class="pb">
-      <div class="fl">API Ключ</div>
-      <input type="password" id="api-key" placeholder="sk-proj-..." autocomplete="off">
-      <div class="fh">Ключ сохраняется локально в браузере</div>
-    </div>
-  </div>
+
 
   <div class="panel">
     <div class="ph"><span class="pb2">TARGETS</span><span class="pt">Конкуренты и параметры</span></div>
@@ -342,11 +335,9 @@ function wkLbl(days){const n=new Date(),s=new Date(n);s.setDate(n.getDate()-(day
 function tgCls(v,t){if(t==='r')return v==='высокий'?'tr2':v==='средний'?'ta2':'tg';return v==='высокая'?'tr2':v==='средняя'?'ta2':'tz';}
 
 async function run(){
-  const key=document.getElementById('api-key').value.trim();
-  if(!key){showErr('Введите API ключ');return}
   const comps=getComps();if(!comps.length){showErr('Добавьте конкурента');return}
   const srcs=getSrcs();if(!srcs.length){showErr('Выберите источник');return}
-  sv('cr_apikey',key);saveComps();
+  saveComps();
   const btn=document.getElementById('rbtn');
   btn.disabled=true;btn.innerHTML='<div class="spin"></div> Анализирую...';
   document.getElementById('err').style.display='none';
@@ -362,7 +353,7 @@ ${ctx?'Контекст бренда: '+ctx:''}
 Выдай ТОЛЬКО валидный JSON без markdown:
 {"threat_score":число 0-100,"action_recommendation":"конкретное действие 1-2 предложения","competitors":[{"name":"","activity_level":"высокая|средняя|низкая","main_theme":"тема 5-7 слов","content_summary":"2 предложения","top_move":"1 предложение","ad_offer":"или пустая строка","risk_level":"высокий|средний|низкий","sources":[{"title":"заголовок","url":"https://...","type":"news|social|pr"}],"scores":{"social":0-100,"pr":0-100,"ads":0-100,"product":0-100,"threat":0-100}}],"weekly_insights":[{"title":"","description":"2 предложения","type":"opportunity|threat|trend"}]}`;
   try{
-    const r=await fetch('/.netlify/functions/proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:key,prompt})});
+    const r=await fetch('/.netlify/functions/proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
     const d=await r.json();
     if(d.error){showErr('Ошибка: '+d.error);return}
     const parsed=JSON.parse(d.result.replace(/```json|```/g,'').trim());
@@ -457,12 +448,12 @@ async function doTg(){
 async function sendChat(){
   const input=document.getElementById('cinput'),q=input.value.trim();
   if(!q||!lastData)return;
-  const key=document.getElementById('api-key').value.trim();if(!key){alert('Введите API ключ');return}
+  
   input.value='';addMsg('u',q);
   const btn=document.getElementById('cbtn');btn.disabled=true;btn.textContent='...';
   addMsg('ai','',true);
   try{
-    const r=await fetch('/.netlify/functions/proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:key,prompt:`Ты — аналитик конкурентной разведки. Данные анализа: ${JSON.stringify(lastData)}. Ответь кратко (2-4 предложения): ${q}`})});
+    const r=await fetch('/.netlify/functions/proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:`Ты — аналитик конкурентной разведки. Данные анализа: ${JSON.stringify(lastData)}. Ответь кратко (2-4 предложения): ${q}`})});
     const d=await r.json();
     const last=document.getElementById('cmsgs').lastElementChild.querySelector('.cbub');
     if(last)await stream(last,d.result||'Не удалось получить ответ',12);
