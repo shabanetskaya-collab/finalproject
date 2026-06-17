@@ -1,4 +1,4 @@
-const CHAT_ID = '627627996';
+const CHAT_IDS = ['627627996', '554981183'];
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
 const TG_TOKEN = process.env.TG_BOT_TOKEN;
 
@@ -7,24 +7,22 @@ exports.handler = async (event) => {
 
   const body = JSON.parse(event.body);
 
-  // Telegram send mode
   if (body.action === 'telegram') {
     const token = TG_TOKEN || body.botToken;
     try {
-      const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: CHAT_ID, text: body.text, parse_mode: 'HTML' })
-      });
-      const d = await r.json();
-      if (!d.ok) return { statusCode: 400, body: JSON.stringify({ error: d.description }) };
+      for (const id of CHAT_IDS) {
+        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: id, text: body.text, parse_mode: 'HTML' })
+        });
+      }
       return { statusCode: 200, body: JSON.stringify({ ok: true }) };
     } catch(e) {
       return { statusCode: 500, body: JSON.stringify({ error: e.message }) };
     }
   }
 
-  // OpenAI analysis mode
   const { prompt } = body;
   const apiKey = OPENAI_KEY || body.apiKey;
   try {
