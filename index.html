@@ -509,7 +509,61 @@ function renderHist(){
 }
 function loadHist(id){const item=ld('cr_hist',[]).find(h=>h.id===id);if(!item)return;nav('analyze',document.querySelectorAll('.ntab')[0]);lastData=item.data;render(item.data,item.comps.length,item.days);}
 function delHist(id){sv('cr_hist',ld('cr_hist',[]).filter(h=>h.id!==id));renderHist();}
-function exportPDF(){html2pdf().set({margin:8,filename:'competitor-radar-'+new Date().toLocaleDateString('ru')+'.pdf',image:{type:'jpeg',quality:0.92},html2canvas:{scale:2,backgroundColor:'#0A0A0F'},jsPDF:{unit:'mm',format:'a4'}}).from(document.getElementById('pdfc')).save();}
+function exportPDF(){
+  if(!lastData){alert('Сначала запустите анализ');return}
+  const score=lastData.threat_score||0;
+  const cls=score<35?'#00B87C':score<65?'#FF9900':'#FF3B6B';
+  const comps=(lastData.competitors||[]).map(c=>`
+    <div style="border:1px solid #E0E0E0;border-radius:10px;margin-bottom:14px;overflow:hidden;page-break-inside:avoid">
+      <div style="background:#F7F7F7;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #E0E0E0">
+        <strong style="font-size:15px">${c.name}</strong>
+        <span style="font-size:11px;color:#666">Активность: ${c.activity_level} · Риск: ${c.risk_level}</span>
+      </div>
+      <div style="padding:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:#FAFAFA;border-radius:8px;padding:10px;border:1px solid #EEE"><div style="font-size:9px;color:#999;font-weight:700;text-transform:uppercase;margin-bottom:4px">Тема недели</div><div style="font-size:13px">${c.main_theme}</div></div>
+        <div style="background:#FAFAFA;border-radius:8px;padding:10px;border:1px solid #EEE"><div style="font-size:9px;color:#999;font-weight:700;text-transform:uppercase;margin-bottom:4px">Главный ход</div><div style="font-size:13px">${c.top_move||'—'}</div></div>
+        <div style="background:#FAFAFA;border-radius:8px;padding:10px;border:1px solid #EEE;grid-column:1/-1"><div style="font-size:9px;color:#999;font-weight:700;text-transform:uppercase;margin-bottom:4px">Активность</div><div style="font-size:13px">${c.content_summary}</div></div>
+        ${c.ad_offer?`<div style="background:#FAFAFA;border-radius:8px;padding:10px;border:1px solid #EEE;grid-column:1/-1"><div style="font-size:9px;color:#999;font-weight:700;text-transform:uppercase;margin-bottom:4px">Оффер</div><div style="font-size:13px">${c.ad_offer}</div></div>`:''}
+        ${c.sources&&c.sources.length?`<div style="background:#FAFAFA;border-radius:8px;padding:10px;border:1px solid #EEE;grid-column:1/-1"><div style="font-size:9px;color:#999;font-weight:700;text-transform:uppercase;margin-bottom:6px">Источники</div>${c.sources.map(s=>`<div style="font-size:12px;margin-bottom:4px">→ ${s.title}${s.date?' ('+s.date+')':''}<br><span style="color:#0070F3;font-size:11px">${s.url}</span></div>`).join('')}</div>`:''}
+      </div>
+    </div>`).join('');
+  const insights=(lastData.weekly_insights||[]).map(i=>`
+    <div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #EEE;page-break-inside:avoid">
+      <div style="font-size:18px;flex-shrink:0">${i.type==='opportunity'?'🚀':i.type==='threat'?'⚠️':'📈'}</div>
+      <div><div style="font-weight:700;font-size:13px;margin-bottom:3px">${i.title} <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:${i.type==='opportunity'?'#E6F9F0':i.type==='threat'?'#FFF0F0':'#FFF8E6'};color:${i.type==='opportunity'?'#00B87C':i.type==='threat'?'#E53E3E':'#D97706'}">${i.type==='opportunity'?'возможность':i.type==='threat'?'угроза':'тренд'}</span></div><div style="font-size:12px;color:#555;line-height:1.6">${i.description}</div></div>
+    </div>`).join('');
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;font-size:14px;color:#222;background:white;padding:0}
+    @page{margin:15mm;size:A4}
+  </style></head><body>
+    <div style="border-bottom:3px solid #0070F3;padding-bottom:16px;margin-bottom:20px">
+      <div style="font-size:22px;font-weight:900;color:#0A0A0F;margin-bottom:4px">📡 Competitor Radar</div>
+      <div style="font-size:13px;color:#666">Дайджест · ${new Date().toLocaleDateString('ru',{day:'numeric',month:'long',year:'numeric'})}</div>
+    </div>
+    <div style="background:linear-gradient(135deg,#0070F3,#0057C2);color:white;border-radius:12px;padding:20px 24px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:11px;font-weight:700;opacity:0.7;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">Индекс угрозы</div>
+        <div style="font-size:56px;font-weight:900;line-height:1;color:${score<35?'#C8FF00':score<65?'#FFD700':'#FF6B6B'}">${score}</div>
+        <div style="font-size:13px;margin-top:8px;opacity:0.85">${score<35?'Конкурентная среда спокойная':score<65?'Умеренная активность конкурентов':'Высокая угроза — требуется реакция'}</div>
+      </div>
+      <div style="text-align:right;opacity:0.6;font-size:12px">${document.getElementById('wlbl').textContent}</div>
+    </div>
+    <div style="background:#F0FFF8;border:1px solid rgba(0,184,124,0.3);border-radius:10px;padding:16px 20px;margin-bottom:20px">
+      <div style="font-size:10px;font-weight:700;color:#00B87C;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">⚡ Рекомендованное действие</div>
+      <div style="font-size:15px;font-weight:600;color:#222;line-height:1.7">${lastData.action_recommendation||''}</div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #EEE">Дайджест по конкурентам</div>
+    ${comps}
+    <div style="font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.1em;margin:20px 0 12px;padding-bottom:8px;border-bottom:1px solid #EEE">Ключевые инсайты</div>
+    ${insights}
+    <div style="margin-top:24px;padding-top:12px;border-top:1px solid #EEE;font-size:11px;color:#999;text-align:center">Competitor Radar · AI Intelligence · Powered by GPT-4o</div>
+  </body></html>`;
+  const win=window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+  win.onload=()=>{win.print();};
+}
 async function sendTg(){
   if(!lastData){alert('Сначала запустите анализ');return}
   const score=lastData.threat_score||0,emoji=score<35?'🟢':score<65?'🟡':'🔴';
